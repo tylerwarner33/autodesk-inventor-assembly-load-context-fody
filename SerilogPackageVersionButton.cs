@@ -6,6 +6,11 @@ using System.Runtime.Loader;
 
 namespace IsolatedInventorAddin;
 
+/// <remarks>
+///	This class must NOT have the <c>[Isolator]</c> attribute because it interacts with Inventor COM objects.
+///	COM interop requires the code to run in the default <see cref="System.Runtime.Loader.AssemblyLoadContext"/> to avoid marshaling errors.
+///	Any logic requiring isolation should be delegated to a separate class marked with <c>[Isolator]</c>/>.
+/// </remarks>
 internal class SerilogPackageVersionButton(Inventor.Application inventorApplication)
 	 : Button(
 		  inventorApplication: inventorApplication,
@@ -26,7 +31,10 @@ internal class SerilogPackageVersionButton(Inventor.Application inventorApplicat
 		try
 		{
 			string title = $"Inventor {GetInventorDisplayVersion(_inventorApplication)}";
-			string assemblyVersionInfo = GetAssemblyVersionInfo(nameof(Serilog), typeof(Serilog.Log));
+
+			AssemblyInspector inspector = new();
+			string assemblyVersionInfo = inspector.GetSerilogVersionInfo();
+
 			MessageBox.Show(assemblyVersionInfo, title);
 		}
 		catch (Exception ex)
@@ -45,100 +53,6 @@ internal class SerilogPackageVersionButton(Inventor.Application inventorApplicat
 
 		return $"{softwareVersion.Major}.{softwareVersion.Minor}";
 	}
-
-	private static string GetAssemblyVersionInfo(string targetAssemblyName, Type targetAssemblyType)
-	{
-		try
-		{
-			var stringBuilder = new System.Text.StringBuilder();
-
-			// Requesting add-in assembly.
-			var addinAssembly = typeof(SerilogPackageVersionButton).Assembly;
-#if NETCOREAPP
-			var addinAssemblyLoadContext = AssemblyLoadContext.GetLoadContext(addinAssembly);
-			var addinAssemblyLoadContextName = addinAssemblyLoadContext?.Name ?? "<default>";
-#else
-			var addinAppDomain = AppDomain.CurrentDomain;
-			var addinAppDomainName = addinAppDomain?.FriendlyName ?? "<default>";
-#endif
-
-			stringBuilder.AppendLine("****  Requesting Add-In Assembly  ****");
-			AppendKeyValuePair(stringBuilder, "Name", addinAssembly.GetName().Name);
-#if NETCOREAPP
-			AppendKeyValuePair(stringBuilder, "AssemblyLoadContext", addinAssemblyLoadContextName);
-#else
-			AppendKeyValuePair(stringBuilder, "AppDomain", addinAppDomainName);
-#endif
-			AppendKeyValuePair(stringBuilder, "Version", addinAssembly.GetName().Version?.ToString());
-			AppendKeyValuePair(stringBuilder, "Path", addinAssembly.Location);
-			stringBuilder.AppendLine();
-
-			// Assembly used for target type.
-			var usedTargetAssembly = targetAssemblyType.Assembly;
-#if NETCOREAPP
-			var usedTargetAssemblyLoadContext = AssemblyLoadContext.GetLoadContext(usedTargetAssembly);
-			var usedTargetAssemblyLoadContextName = usedTargetAssemblyLoadContext?.Name ?? "<default>";
-#else
-			var usedTargetAppDomain = AppDomain.CurrentDomain;
-			var usedTargetAppDomainName = addinAppDomain?.FriendlyName ?? "<default>";
-#endif
-
-			stringBuilder.AppendLine($"****  Target '{targetAssemblyName}' Assembly Actually Used  ****");
-			AppendKeyValuePair(stringBuilder, "Name", usedTargetAssembly.GetName().Name);
-#if NETCOREAPP
-			AppendKeyValuePair(stringBuilder, "AssemblyLoadContext", usedTargetAssemblyLoadContextName);
-#endif
-			AppendKeyValuePair(stringBuilder, "Version", usedTargetAssembly.GetName().Version?.ToString());
-			AppendKeyValuePair(stringBuilder, "Path", usedTargetAssembly.Location);
-			stringBuilder.AppendLine();
-
-			// All loaded target assemblies.
-#if NETCOREAPP
-			stringBuilder.AppendLine($"****  All Loaded \"{targetAssemblyName}\" Assemblies (by AssemblyLoadContext)  ****");
-			var groups = AppDomain.CurrentDomain
-				 .GetAssemblies()
-				 .Where(assembly => string.Equals(assembly.GetName().Name, targetAssemblyName, StringComparison.Ordinal))
-				 .Select(assembly => new { Context = AssemblyLoadContext.GetLoadContext(assembly), Assembly = assembly })
-				 .GroupBy(x => x.Context?.Name ?? "<default>")
-				 .OrderBy(group => group.Key, StringComparer.Ordinal);
-
-			foreach (var group in groups)
-			{
-				AppendKeyValuePair(stringBuilder, "AssemblyLoadContext", group.Key);
-				foreach (var assembly in group)
-				{
-					AppendKeyValuePair(stringBuilder, "Version", assembly.Assembly.GetName().Version?.ToString());
-					AppendKeyValuePair(stringBuilder, "Path", assembly.Assembly.Location);
-				}
-				stringBuilder.AppendLine();
-			}
-#else
-			stringBuilder.AppendLine($"****  All Loaded '{targetAssemblyName}' Assemblies  ****");
-			var assemblies = AppDomain.CurrentDomain
-				 .GetAssemblies()
-				 .Where(assembly => string.Equals(assembly.GetName().Name, targetAssemblyName, StringComparison.Ordinal))
-				 .OrderBy(assembly => assembly.GetName().Version);
-
-			foreach (var assembly in assemblies)
-			{
-				AppendKeyValuePair(stringBuilder, "Version", assembly.GetName().Version?.ToString());
-				AppendKeyValuePair(stringBuilder, "Path", assembly.Location);
-				stringBuilder.AppendLine();
-			}
-#endif
-
-			return stringBuilder.ToString();
-		}
-		catch (Exception ex)
-		{
-			return @$"Error getting assembly version info for '{targetAssemblyName}' with type '{targetAssemblyType}'.
-Exception Message: {ex.Message}
-Exception Stack Trace: {ex.StackTrace}";
-		}
-	}
-
-	private static void AppendKeyValuePair(System.Text.StringBuilder stringBuilder, string key, string? value)
-		 => stringBuilder.Append($"     {key}").Append(": ").AppendLine(value ?? "<n/a>");
 }
 
 internal abstract class Button : IDisposable
@@ -225,5 +139,114 @@ internal abstract class Button : IDisposable
 		private PictureConverter() : base(string.Empty) { }
 
 		public static stdole.IPictureDisp ImageToPictureDisp(Image image) => (stdole.IPictureDisp)GetIPictureDispFromPicture(image);
+	}
+}
+
+/// <summary>
+///	Isolated class that handles assembly inspection logic.
+///	This runs in a separate AssemblyLoadContext to demonstrate isolation.
+/// </summary>
+[Isolator]
+internal class AssemblyInspector
+{
+	public static string GetAssemblyVersionInfo(string targetAssemblyName, Type targetAssemblyType)
+	{
+		try
+		{
+			var stringBuilder = new System.Text.StringBuilder();
+
+			var addinAssembly = typeof(AssemblyInspector).Assembly;
+#if NETCOREAPP
+			var addinAssemblyLoadContext = AssemblyLoadContext.GetLoadContext(addinAssembly);
+			var addinAssemblyLoadContextName = addinAssemblyLoadContext?.Name ?? "<default>";
+#else
+         var addinAppDomain = AppDomain.CurrentDomain;
+         var addinAppDomainName = addinAppDomain?.FriendlyName ?? "<default>";
+#endif
+
+			stringBuilder.AppendLine("****  Requesting Add-In Assembly  ****");
+			AppendKeyValuePair(stringBuilder, "Name", addinAssembly.GetName().Name);
+#if NETCOREAPP
+			AppendKeyValuePair(stringBuilder, "AssemblyLoadContext", addinAssemblyLoadContextName);
+#else
+         AppendKeyValuePair(stringBuilder, "AppDomain", addinAppDomainName);
+#endif
+			AppendKeyValuePair(stringBuilder, "Version", addinAssembly.GetName().Version?.ToString());
+			AppendKeyValuePair(stringBuilder, "Path", addinAssembly.Location);
+			stringBuilder.AppendLine();
+
+			// Assembly used for target type.
+			var usedTargetAssembly = targetAssemblyType.Assembly;
+#if NETCOREAPP
+			var usedTargetAssemblyLoadContext = AssemblyLoadContext.GetLoadContext(usedTargetAssembly);
+			var usedTargetAssemblyLoadContextName = usedTargetAssemblyLoadContext?.Name ?? "<default>";
+#else
+         var usedTargetAppDomain = AppDomain.CurrentDomain;
+         var usedTargetAppDomainName = addinAppDomain?.FriendlyName ?? "<default>";
+#endif
+
+			stringBuilder.AppendLine($"****  Target '{targetAssemblyName}' Assembly Actually Used  ****");
+			AppendKeyValuePair(stringBuilder, "Name", usedTargetAssembly.GetName().Name);
+#if NETCOREAPP
+			AppendKeyValuePair(stringBuilder, "AssemblyLoadContext", usedTargetAssemblyLoadContextName);
+#endif
+			AppendKeyValuePair(stringBuilder, "Version", usedTargetAssembly.GetName().Version?.ToString());
+			AppendKeyValuePair(stringBuilder, "Path", usedTargetAssembly.Location);
+			stringBuilder.AppendLine();
+
+			// All loaded target assemblies.
+#if NETCOREAPP
+			stringBuilder.AppendLine($"****  All Loaded \"{targetAssemblyName}\" Assemblies (by AssemblyLoadContext)  ****");
+			var groups = AppDomain.CurrentDomain
+				 .GetAssemblies()
+				 .Where(assembly => string.Equals(assembly.GetName().Name, targetAssemblyName, StringComparison.Ordinal))
+				 .Select(assembly => new { Context = AssemblyLoadContext.GetLoadContext(assembly), Assembly = assembly })
+				 .GroupBy(x => x.Context?.Name ?? "<default>")
+				 .OrderBy(group => group.Key, StringComparer.Ordinal);
+
+			foreach (var group in groups)
+			{
+				AppendKeyValuePair(stringBuilder, "AssemblyLoadContext", group.Key);
+				foreach (var assembly in group)
+				{
+					AppendKeyValuePair(stringBuilder, "Version", assembly.Assembly.GetName().Version?.ToString());
+					AppendKeyValuePair(stringBuilder, "Path", assembly.Assembly.Location);
+				}
+				stringBuilder.AppendLine();
+			}
+#else
+         stringBuilder.AppendLine($"****  All Loaded '{targetAssemblyName}' Assemblies  ****");
+         var assemblies = AppDomain.CurrentDomain
+               .GetAssemblies()
+               .Where(assembly => string.Equals(assembly.GetName().Name, targetAssemblyName, StringComparison.Ordinal))
+               .OrderBy(assembly => assembly.GetName().Version);
+
+         foreach (var assembly in assemblies)
+         {
+               AppendKeyValuePair(stringBuilder, "Version", assembly.GetName().Version?.ToString());
+               AppendKeyValuePair(stringBuilder, "Path", assembly.Location);
+               stringBuilder.AppendLine();
+         }
+#endif
+
+			return stringBuilder.ToString();
+		}
+		catch (Exception ex)
+		{
+			return @$"Error getting assembly version info for '{targetAssemblyName}' with type '{targetAssemblyType}'.
+Exception Message: {ex.Message}
+Exception Stack Trace: {ex.StackTrace}";
+		}
+	}
+
+	private static void AppendKeyValuePair(System.Text.StringBuilder stringBuilder, string key, string? value)
+		 => stringBuilder.Append($"     {key}").Append(": ").AppendLine(value ?? "<n/a>");
+
+	/// <summary>
+	///	Gets Serilog version info with the type resolved inside the isolated context.
+	/// </summary>
+	public string GetSerilogVersionInfo()
+	{
+		return GetAssemblyVersionInfo(nameof(Serilog), typeof(Serilog.Log));
 	}
 }

@@ -57,6 +57,10 @@
 
 	<!-- Nuget Packages -->
 	<ItemGroup>
+		<PackageReference Include="Isolator.Fody" Version="1.0.0">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>build; compile</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="stdole" Version="17.14.40260" />
 	</ItemGroup>
@@ -90,7 +94,17 @@
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
-
+	
+	<!-- Isolator.Fody NuGet Package Settings -->
+	<PropertyGroup>
+		<WeaverConfiguration>
+			<Weavers>
+				<Isolator />
+				<!--<Isolator SkipIsolator='true' />-->
+			</Weavers>
+		</WeaverConfiguration>
+	</PropertyGroup>
+	
 	<!-- This 'PropertyGroup' section specifies where the plugin is being installed. -->
 	<PropertyGroup>
 		<!-- Inventor Plugin Folder - Per Machine, Version Dependent -->

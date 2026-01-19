@@ -2,8 +2,8 @@
 <!-- Element descriptions: https://help.autodesk.com/view/INVNTOR/2026/ENU/?guid=GUID-52422162-1784-4E8F-B495-CDB7BE9987AB -->
 <!-- Type attribute is same as Type registry key (Standard, Translator, Plugin (Server only)) -->
 <Addin Type="Standard">
-	<ClassId>{963308E2-D850-466D-A1C5-503A2E171552}</ClassId>
-	<ClientId>{963308E2-D850-466D-A1C5-503A2E171552}</ClientId>
+	<ClassId>{054BFF0D-FA7E-43FB-AA61-302D0C34D9CA}</ClassId>
+	<ClientId>{054BFF0D-FA7E-43FB-AA61-302D0C34D9CA}</ClientId>
 
 	<!-- Both of the following fields should be translated. NO OTHER FIELDS SHOULD BE TRANSLATED! -->
 	<DisplayName>IsolatedInventorAddin</DisplayName>

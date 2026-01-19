@@ -1,5 +1,4 @@
 using Inventor;
-using IsolatedInventorAddin.Isolation;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -9,8 +8,8 @@ namespace IsolatedInventorAddin;
 ///	This is the primary <see cref="AddinServer"/> class that implements the <see cref="ApplicationAddInServer"/> interface that all Inventor add-ins are required to implement. 
 ///	The communication between Inventor and the add-in is via the methods on this interface.
 /// </summary>
-[Guid("963308E2-D850-466D-A1C5-503A2E171552")]
-public class AddinServer : IsolatedApplicationAddInServer
+[Guid("054BFF0D-FA7E-43FB-AA61-302D0C34D9CA")]
+public class AddinServer : ApplicationAddInServer
 {
 	private Inventor.Application? _inventorApplication;
 	private UserInterfaceEvents? _userInterfaceEvents;
@@ -18,7 +17,7 @@ public class AddinServer : IsolatedApplicationAddInServer
 
 	private RibbonPanel? _assemblyLoadContextPanel;
 	private SerilogPackageVersionButton? _packageVersionButton;
-	private const string _packageVersionButtonInternalName = $"{nameof(Inventor)}:{nameof(IsolatedInventorAddin)}:{nameof(SerilogPackageVersionButton)}";
+	private const string _packageVersionButtonInternalName = $"{nameof(Inventor)}:{nameof(IsolatedInventorAddin)}.Fody:{nameof(SerilogPackageVersionButton)}";
 
 	private readonly string[] _ribbonNames = ["ZeroDoc"];
 
@@ -32,19 +31,19 @@ public class AddinServer : IsolatedApplicationAddInServer
 
 	public static string? AppPrefixWithVersion => $"{AppPrefix} {AppVersion}";
 
-	public override void OnActivate()
+	public void Activate(ApplicationAddInSite applicationAddInSite, bool firstTime)
 	{
 		try
 		{
-			_inventorApplication = ApplicationAddInSite.Application;
+			_inventorApplication = applicationAddInSite.Application;
 			_userInterfaceEvents = _inventorApplication.UserInterfaceManager.UserInterfaceEvents;
 
 			_userInterfaceEventsSink_OnResetRibbonInterfaceEventDelegate = new UserInterfaceEventsSink_OnResetRibbonInterfaceEventHandler(UserInterfaceEvents_OnResetRibbonInterface);
 			_userInterfaceEvents.OnResetRibbonInterface += _userInterfaceEventsSink_OnResetRibbonInterfaceEventDelegate;
 
-			_packageVersionButton = new SerilogPackageVersionButton(ApplicationAddInSite.Application);
+			_packageVersionButton = new SerilogPackageVersionButton(applicationAddInSite.Application);
 
-			if (FirstTime)
+			if (firstTime)
 				AddRibbonCustomization();
 		}
 		catch (Exception ex)
@@ -53,7 +52,7 @@ public class AddinServer : IsolatedApplicationAddInServer
 		}
 	}
 
-	public override void OnDeactivate()
+	public void Deactivate()
 	{
 		try
 		{
@@ -136,4 +135,9 @@ public class AddinServer : IsolatedApplicationAddInServer
 			GC.WaitForPendingFinalizers();
 		}
 	}
+
+	public object? Automation { get; set; } = null;
+
+	[Obsolete("Deprecated in the Inventor API. Required for legacy compatibility.")]
+	public void ExecuteCommand(int CommandID) { }
 }
