@@ -55,93 +55,6 @@ internal class SerilogPackageVersionButton(Inventor.Application inventorApplicat
 	}
 }
 
-internal abstract class Button : IDisposable
-{
-	private ButtonDefinition? _buttonDefinition;
-	private readonly ButtonDefinitionSink_OnExecuteEventHandler? _buttonDefinition_OnExecuteEventDelegate;
-	private bool _disposed;
-
-	public Inventor.ButtonDefinition? ButtonDefinition => _buttonDefinition;
-
-	public Button(
-		 Inventor.Application inventorApplication,
-		 string displayName,
-		 string internalName,
-		 CommandTypesEnum commandType,
-		 string clientId,
-		 string description,
-		 string tooltip,
-		 Image standardImage,
-		 Image largeImage,
-		 ButtonDisplayEnum buttonDisplayType)
-	{
-		try
-		{
-			stdole.IPictureDisp standardImageDisp = PictureConverter.ImageToPictureDisp(standardImage);
-			stdole.IPictureDisp largeImageDisp = PictureConverter.ImageToPictureDisp(largeImage);
-
-			_buttonDefinition = inventorApplication!.CommandManager.ControlDefinitions.AddButtonDefinition(
-				 displayName,
-				 internalName,
-				 commandType,
-				 clientId,
-				 description,
-				 tooltip,
-				 standardImageDisp,
-				 largeImageDisp,
-				 buttonDisplayType);
-
-			_buttonDefinition.Enabled = true;
-
-			_buttonDefinition_OnExecuteEventDelegate = new ButtonDefinitionSink_OnExecuteEventHandler(ButtonDefinition_OnExecute);
-			_buttonDefinition.OnExecute += _buttonDefinition_OnExecuteEventDelegate;
-		}
-		catch (Exception ex)
-		{
-			MessageBox.Show(ex.ToString());
-		}
-	}
-
-	public void Dispose()
-	{
-		if (_disposed) return;
-
-		try
-		{
-			if (_buttonDefinition is not null && _buttonDefinition_OnExecuteEventDelegate is not null)
-				_buttonDefinition.OnExecute -= _buttonDefinition_OnExecuteEventDelegate;
-		}
-		catch { }
-		finally
-		{
-			if (_buttonDefinition is not null)
-				Marshal.ReleaseComObject(_buttonDefinition);
-
-			_buttonDefinition = null;
-			_disposed = true;
-			GC.SuppressFinalize(this);
-		}
-	}
-
-	abstract protected void ButtonDefinition_OnExecute(NameValueMap context);
-
-	/// <summary>
-	///	Gets the standard sized icon (32px x 32px) as stdole.IPictureDisp.
-	///	Requires stdole Nuget package (https://www.nuget.org/packages/stdole/).
-	/// </summary>
-	/// <remarks>
-	///	Add the image to the project Resources.resx designer in the Properties folder, which will add it to the project resources.
-	///	'Build Action' property on the image must be set to 'EmbeddedResource'.
-	///	'Copy To Output Directory' property on the image must be set to 'Do Not Copy'.
-	/// </remarks>
-	private class PictureConverter : AxHost
-	{
-		private PictureConverter() : base(string.Empty) { }
-
-		public static stdole.IPictureDisp ImageToPictureDisp(Image image) => (stdole.IPictureDisp)GetIPictureDispFromPicture(image);
-	}
-}
-
 /// <summary>
 ///	Isolated class that handles assembly inspection logic.
 ///	This runs in a separate AssemblyLoadContext to demonstrate isolation.
@@ -248,5 +161,92 @@ Exception Stack Trace: {ex.StackTrace}";
 	public string GetSerilogVersionInfo()
 	{
 		return GetAssemblyVersionInfo(nameof(Serilog), typeof(Serilog.Log));
+	}
+}
+
+internal abstract class Button : IDisposable
+{
+	private ButtonDefinition? _buttonDefinition;
+	private readonly ButtonDefinitionSink_OnExecuteEventHandler? _buttonDefinition_OnExecuteEventDelegate;
+	private bool _disposed;
+
+	public Inventor.ButtonDefinition? ButtonDefinition => _buttonDefinition;
+
+	public Button(
+		 Inventor.Application inventorApplication,
+		 string displayName,
+		 string internalName,
+		 CommandTypesEnum commandType,
+		 string clientId,
+		 string description,
+		 string tooltip,
+		 Image standardImage,
+		 Image largeImage,
+		 ButtonDisplayEnum buttonDisplayType)
+	{
+		try
+		{
+			stdole.IPictureDisp standardImageDisp = PictureConverter.ImageToPictureDisp(standardImage);
+			stdole.IPictureDisp largeImageDisp = PictureConverter.ImageToPictureDisp(largeImage);
+
+			_buttonDefinition = inventorApplication!.CommandManager.ControlDefinitions.AddButtonDefinition(
+				 displayName,
+				 internalName,
+				 commandType,
+				 clientId,
+				 description,
+				 tooltip,
+				 standardImageDisp,
+				 largeImageDisp,
+				 buttonDisplayType);
+
+			_buttonDefinition.Enabled = true;
+
+			_buttonDefinition_OnExecuteEventDelegate = new ButtonDefinitionSink_OnExecuteEventHandler(ButtonDefinition_OnExecute);
+			_buttonDefinition.OnExecute += _buttonDefinition_OnExecuteEventDelegate;
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(ex.ToString());
+		}
+	}
+
+	public void Dispose()
+	{
+		if (_disposed) return;
+
+		try
+		{
+			if (_buttonDefinition is not null && _buttonDefinition_OnExecuteEventDelegate is not null)
+				_buttonDefinition.OnExecute -= _buttonDefinition_OnExecuteEventDelegate;
+		}
+		catch { }
+		finally
+		{
+			if (_buttonDefinition is not null)
+				Marshal.ReleaseComObject(_buttonDefinition);
+
+			_buttonDefinition = null;
+			_disposed = true;
+			GC.SuppressFinalize(this);
+		}
+	}
+
+	abstract protected void ButtonDefinition_OnExecute(NameValueMap context);
+
+	/// <summary>
+	///	Gets the standard sized icon (32px x 32px) as stdole.IPictureDisp.
+	///	Requires stdole Nuget package (https://www.nuget.org/packages/stdole/).
+	/// </summary>
+	/// <remarks>
+	///	Add the image to the project Resources.resx designer in the Properties folder, which will add it to the project resources.
+	///	'Build Action' property on the image must be set to 'EmbeddedResource'.
+	///	'Copy To Output Directory' property on the image must be set to 'Do Not Copy'.
+	/// </remarks>
+	private class PictureConverter : AxHost
+	{
+		private PictureConverter() : base(string.Empty) { }
+
+		public static stdole.IPictureDisp ImageToPictureDisp(Image image) => (stdole.IPictureDisp)GetIPictureDispFromPicture(image);
 	}
 }
