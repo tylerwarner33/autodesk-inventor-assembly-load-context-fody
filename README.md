@@ -29,7 +29,7 @@ git clone https://github.com/tylerwarner33/autodesk-inventor-assembly-load-conte
 - `AddinServer.cs`
   - __The main entry point for the add-in using the `OnActivate()` and `OnDeactivate()` methods. Custom add-in logic added here.__
 - .NET 8 / Inventor 2025+:
-  - `Isolation/AddinLoadContext.cs` defines a dedicated `AssemblyLoadContext` and uses `AssemblyDependencyResolver` so the add-in resolves managed and native dependencies from its own output folder first.
+  - `[Isolator]` attribute defines a dedicated `AssemblyLoadContext` so the add-in resolves managed and native dependencies from its own output folder first.
 - .NET Framework 4.8 / Inventor 2023–2024:
   - The add-in runs in the default `AppDomain`. The sample still reports assembly identity to compare behavior across targets.
 - The Interop assembly (`Autodesk.Inventor.Interop`) is referenced with `<Private>False</Private>` so it’s always loaded from Inventor, while the NuGet dependencies (ex. `Serilog`) are copied beside the add-in and loaded in isolation.
