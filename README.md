@@ -1,10 +1,10 @@
-# Isolated Inventor Add-in Sample
+# Isolated Inventor Add-in Sample Using `Isolator.Fody` NuGet Package
 
 ![Inventor Versions](https://img.shields.io/badge/Inventor-2023--2026-blue.svg)
 [![.NET Versions](https://img.shields.io/badge/.NET-4.8--8.0-blue.svg)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-A minimal Autodesk Inventor add-in sample that demonstrates safe dependency isolation. Inventor ships with specific assembly versions. Referencing newer (or different) versions in an add-in often causes binding conflicts. This sample allows the use of NuGet package/assembly versions that differ from the ones bundled with Inventor by isolating the add-in’s dependencies in a custom load context.
+A minimal Autodesk Inventor add-in sample that demonstrates safe dependency isolation. Inventor ships with specific assembly versions. Referencing newer (or different) versions in an add-in often causes binding conflicts. This sample allows the use of NuGet package/assembly versions that differ from the ones bundled with Inventor using the 'Isolator.Fody' NuGet package to automatically isolate the add-in’s dependencies in a separate container using `AssemblyLoadContext`.
 
 ![SerilogVersion](Images/Ribbon_SerilogVersion.png)
 ![Inventor 2026.1](Images/Dialog_Inventor2026.1.png)
@@ -16,7 +16,7 @@ A minimal Autodesk Inventor add-in sample that demonstrates safe dependency isol
 
 1. Clone this project or download it. It's recommended to install [GitHub Desktop](https://desktop.github.com/). To clone it via command line, use the following:
 ```
-git clone https://github.com/tylerwarner33/autodesk-inventor-assembly-load-context.git
+git clone https://github.com/tylerwarner33/autodesk-inventor-assembly-load-context-fody.git
 ```
 2. Choose a configuration: `Debug-2026`, `Debug-2025`, `Debug-2024`, `Debug-2023` (or the corresponding `Release-*`) to work with that Inventor version.
 3. Build the solution. The post-build step creates a bundle and copies it to (replace `<version>` and paste in file explorer):
@@ -28,7 +28,6 @@ git clone https://github.com/tylerwarner33/autodesk-inventor-assembly-load-conte
 
 - `AddinServer.cs`
   - __The main entry point for the add-in using the `OnActivate()` and `OnDeactivate()` methods. Custom add-in logic added here.__
-  - Inherits `Isolation/IsolatedApplicationAddInServer.cs` which implements `Inventor.ApplicationAddInServer`.
 - .NET 8 / Inventor 2025+:
   - `Isolation/AddinLoadContext.cs` defines a dedicated `AssemblyLoadContext` and uses `AssemblyDependencyResolver` so the add-in resolves managed and native dependencies from its own output folder first.
 - .NET Framework 4.8 / Inventor 2023–2024:
@@ -39,7 +38,9 @@ git clone https://github.com/tylerwarner33/autodesk-inventor-assembly-load-conte
 
 ## Resources
 
-- TylerWarner.dev Blog Post: [Isolate Inventor Add-In](https://tylerwarner.dev/how-to-use-assemblyloadcontext-for-isolating-inventor-addin-dependencies)
+- TylerWarner.dev Blog Post: [Isolate Autodesk Add-Ins With the 'Isolator.Fody' NuGet Package](https://tylerwarner.dev/assemblyloadcontext-for-autodesk-addins-with-isolatorfody)
+- Isolator.Fody NuGet Package: [Isolator.Fody](https://www.nuget.org/packages/Isolator.Fody)
+- Isolator.Fody GitHub Repo: [Isolator.Fody](https://github.com/ricaun-io/Isolator.Fody)
 - Microsoft Learn: [System.Runtime.Loader.AssemblyLoadContext](https://learn.microsoft.com/en-us/dotnet/core/dependency-loading/understanding-assemblyloadcontext)
 - Microsoft GitHub: [AssemblyLoadContext](https://github.com/dotnet/coreclr/blob/v2.1.0/Documentation/design-docs/assemblyloadcontext.md)
 
