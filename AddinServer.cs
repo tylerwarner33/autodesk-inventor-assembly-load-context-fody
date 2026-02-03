@@ -139,5 +139,5 @@ public class AddinServer : ApplicationAddInServer
 	public object? Automation { get; set; } = null;
 
 	[Obsolete("Deprecated in the Inventor API. Required for legacy compatibility.")]
-	public void ExecuteCommand(int CommandID) { }
+	public void ExecuteCommand(int commandId) { }
 }
